@@ -1,3 +1,5 @@
+import cors from "cors"
+import corsConfig from "../Config/corsConfig.js";
 import express from "express";
 import authenticateToken from "../utils/authenticateToken.js";
 import {
@@ -12,6 +14,7 @@ import {
 } from "../Controllers/PostController.js";
 const router = express.Router();
 
+router.options("*",cors(corsConfig))
 router.get("/", getAllPosts);
 router.post("/", authenticateToken, createPost);
 router.get("/timeline", authenticateToken, getTimelinePosts);

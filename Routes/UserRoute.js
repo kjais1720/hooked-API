@@ -1,3 +1,5 @@
+import cors from "cors"
+import corsConfig from "../Config/corsConfig.js";
 import express from "express";
 import {
   deleteUser,
@@ -11,6 +13,7 @@ import {
 import authenticateToken from "../utils/authenticateToken.js";
 const router = express.Router();
 
+router.options("*",cors(corsConfig))
 router.get("/",getAllUsers);
 router.get("/:id", getUser);
 router.put("/", authenticateToken, updateUser);
