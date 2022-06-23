@@ -1,8 +1,3 @@
-const corsConfig = {
-  origin: "https://hooked-social.vercel.app",
-  credentials: true,
-};
- 
 var whitelist = ['http://localhost:3000', 'https://hooked-social.vercel.app']
 var corsConfig = {
   origin: function (origin, callback) {
@@ -11,7 +6,8 @@ var corsConfig = {
     } else {
       callback(new Error('Not allowed by CORS'))
     }
-  }
+  },
+  credentials:true
 }
 
 export default corsConfig;
