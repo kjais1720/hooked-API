@@ -25,10 +25,7 @@ cloudinary.config({
 });
 
 // Middleware
-app.use(cors({
-  origin:["https://hooked-social.vercel.app", "http://localhost:3000"],
-  credentials:true,
-}))
+app.use(cors(corsConfig))
 
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
