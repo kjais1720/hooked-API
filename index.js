@@ -26,7 +26,7 @@ cloudinary.config({
 
 // Middleware
 app.use(cors({
-  origin:"https://hooked-social.vercel.app",
+  origin:["https://hooked-social.vercel.app", "http://localhost:3000"],
   credentials:true,
 }))
 
