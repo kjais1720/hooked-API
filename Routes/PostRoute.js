@@ -1,0 +1,23 @@
+import express from "express";
+import authenticateToken from "../utils/authenticateToken.js";
+import {
+  createPost,
+  deletePost,
+  getPost,
+  getAllPosts,
+  getTimelinePosts,
+  likePost,
+  updatePost,
+  createComment
+} from "../Controllers/PostController.js";
+const router = express.Router();
+
+router.get("/", getAllPosts);
+router.post("/", authenticateToken, createPost);
+router.get("/timeline", authenticateToken, getTimelinePosts);
+router.get("/:id", authenticateToken, getPost);
+router.put("/:id", authenticateToken, updatePost);
+router.delete("/:id", authenticateToken, deletePost);
+router.put("/:id/like", authenticateToken, likePost);
+router.put("/:id/comment",authenticateToken,createComment);
+export default router;
