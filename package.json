@@ -21,7 +21,7 @@
     "mongoose": "^6.3.4",
     "uuid": "^8.3.2"
   },
-  "engines":{
+  "engines": {
     "node": "14.17.0"
   }
 }
