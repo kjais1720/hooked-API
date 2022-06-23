@@ -25,7 +25,14 @@ cloudinary.config({
 });
 
 // Middleware
-app.use(cors(corsConfig))
+// app.use(cors(corsConfig))
+app.use(function (req, res, next) {
+  //Enabling CORS
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT,DELETE");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, x-client-key, x-client-token, x-client-secret, Authorization");
+    next();
+  });
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 
@@ -45,7 +52,7 @@ mongoose
 
 
   // usage of routes
-  app.options("*",cors(corsConfig))
+  // app.options("*",cors(corsConfig))
   app.use('/auth', AuthRoute)
   app.use('/user', UserRoute)
   app.use('/post', PostRoute)
