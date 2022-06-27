@@ -15,6 +15,8 @@ export const registerUser = async (req, res) => {
     firstname,
     lastname,
     email,
+    about:"",
+    location:"",
     followers:[],
     following:[],
     bookmarks:[],

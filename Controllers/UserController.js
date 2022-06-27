@@ -1,3 +1,4 @@
+import { v4 as uuid} from "uuid"
 import UserModel from "../Models/userModel.js";
 import bcrypt from "bcrypt";
 import { uploadImage } from "../utils/uploadImage.js";
@@ -97,6 +98,7 @@ export const followUser = async (req, res) => {
       const followUser = await UserModel.findById(id);
       const followingUser = await UserModel.findById(currentUserId);
       const notification = {
+        _id:uuid(),
         type: "follow",
         payload: {
           userId: currentUserId,
@@ -152,5 +154,31 @@ export const bookmarkPost = async (req, res) => {
   }
   catch(err){
     res.status(500).json(err);
+  }
+}
+
+// Get notifications
+export const getNotifications = async (req, res) => {
+  const {notifications} = req.user
+  try{
+    res.status(200).json(notifications)
+  }
+  catch(err){
+    res.status(500).json(err)
+  }
+}
+
+//Delete a notification 
+export const deleteNotification = async (req, res ) => {
+  const userId = req.user.id;
+  const {id} = req.params
+  try{
+    const user = await UserModel.findById(userId);
+    await user.updateOne({$pull:{notifications: {_id :id }}})
+    console.log(user.notifications)
+    res.status(201).json("Notification deleted");
+  }
+  catch(err){
+    res.status(500).json(err)
   }
 }

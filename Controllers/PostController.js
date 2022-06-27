@@ -107,6 +107,20 @@ export const likePost = async (req, res) => {
   try {
     const post = await PostModel.findById(id);
     if (!post.likes.includes(userId)) {
+      
+      const postUserId = post.userId;
+      const postUser = await UserModel.findById(postUserId);
+      if(postUserId !== userId){
+        const notification = {
+          _id:uuid(),
+          type: "like",
+          payload: {
+            userId: userId,
+            postId: id
+          },
+        };
+        await postUser.updateOne({$push:{notifications: notification}})
+      }
       await post.updateOne({ $push: { likes: userId } });
       res.status(200).json("Post liked");
     } else {
@@ -128,6 +142,19 @@ export const createComment = async (req, res) => {
   newComment.createdAt = new Date().toISOString();
   try {
     const post = await PostModel.findById(postId);
+    const postUserId = post.userId;
+    if(postUserId !== userId){
+      const notification = {
+        _id:uuid(),
+        type: "like",
+        payload: {
+          userId: userId,
+          postId: id
+        },
+      };
+      const postUser = await UserModel.findById(postUserId);
+      await postUser.updateOne({$push:{notifications: notification}})
+    }
     await post.updateOne({ $push: { comments: newComment } });
     res.status(201).json(newComment);
   } catch (err) {
