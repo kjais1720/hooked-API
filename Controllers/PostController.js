@@ -19,7 +19,7 @@ export const createPost = async (req, res) => {
   try {
     const files = req.files;
     const {username} = req.user;
-    let imageUrls;
+    let uploadedImages;
     if (files) {
       let images = [
         files["image-0"],
@@ -28,10 +28,10 @@ export const createPost = async (req, res) => {
         files["image-3"],
       ];
       images = images.filter((image) => image !== undefined);
-      imageUrls = await Promise.allSettled(
+      uploadedImages = await Promise.allSettled(
         images.map((img) => uploadImage(img, `${username}/posts`))
       );
-      imageUrls = imageUrls.map((image, idx) => {
+      uploadedImages = uploadedImages.map((image, idx) => {
         return {
           title: req.body[`imageAlt-${idx}`],
           src: image.value.secure_url,
@@ -42,7 +42,7 @@ export const createPost = async (req, res) => {
     const newPost = new PostModel({
       ...req.body,
       userId: req.user.id,
-      images: imageUrls,
+      images: uploadedImages,
     });
     await newPost.save();
     res.status(200).json(newPost);
@@ -70,13 +70,14 @@ export const updatePost = async (req, res) => {
   const postId = req.params.id;
   const userId = req.user.id;
   const files = req.files;
+  const {imagesToDelete, ...updatedPost} = req.body
   try {
     if(files){
       
     }
     const post = await PostModel.findById(postId);
     if (post.userId === userId) {
-      await post.updateOne({ $set: req.body });
+      await post.updateOne({ $set: updatedPost });
       res.status(200).json("Post Updated");
     } else {
       res.status(403).json("Action forbidden");
