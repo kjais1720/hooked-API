@@ -1,7 +1,7 @@
 import { v4 as uuid} from "uuid"
 import UserModel from "../Models/userModel.js";
 import bcrypt from "bcrypt";
-import { uploadImage } from "../utils/uploadImage.js";
+import { uploadImage } from "../utils/cloudinaryHelpers.js";
 
 //get all users
 export const getAllUsers = async (req, res) => {
@@ -32,7 +32,7 @@ export const getUser = async (req, res) => {
 
 // update a user
 export const updateUser = async (req, res) => {
-  const id = req.user.id;
+  const {id, username} = req.user;
   const { updateUserId, password, ...updatedUser } = req.body;
   const files = req.files;
   try {
@@ -44,19 +44,26 @@ export const updateUser = async (req, res) => {
       const profilePic = files["profilePicture"];
       const coverPic = files["coverPicture"];
       if (profilePic) {
-        const profilePicUrl = await uploadImage(
+        const uploadedPicture = await uploadImage(
           profilePic,
-          `users/${id}`
+          `${username}/profilePic`
         );
-        updatedUser.profilePicture = profilePicUrl;
+        updatedUser.profilePicture = {
+          src:uploadedPicture.secure_url,
+          publicId: uploadedPicture.public_id
+        };
       }
       if (coverPic) {
-        const coverPicUrl = await uploadImage(
+        const uploadedPicture = await uploadImage(
           coverPic,
-          `users/${id}`
+          `${username}/coverPic`
         );
-        updatedUser.coverPicture = coverPicUrl;
+        updatedUser.coverPicture = {
+          src:uploadedPicture.secure_url,
+          publicId: uploadedPicture.public_id
+        };
       }
+
     }
     const user = await UserModel.findByIdAndUpdate(id, updatedUser, {
       new: true,
@@ -175,7 +182,6 @@ export const deleteNotification = async (req, res ) => {
   try{
     const user = await UserModel.findById(userId);
     await user.updateOne({$pull:{notifications: {_id :id }}})
-    console.log(user.notifications)
     res.status(201).json("Notification deleted");
   }
   catch(err){

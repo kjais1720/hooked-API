@@ -2,7 +2,7 @@ import { v4 as uuid } from "uuid";
 import PostModel from "../Models/postModel.js";
 import mongoose from "mongoose";
 import UserModel from "../Models/userModel.js";
-import { uploadImage } from "../utils/uploadImage.js";
+import { uploadImage, deleteAssetsFromServer } from "../utils/cloudinaryHelpers.js";
 
 //Get all posts
 export const getAllPosts = async (req, res) => {
@@ -18,6 +18,7 @@ export const getAllPosts = async (req, res) => {
 export const createPost = async (req, res) => {
   try {
     const files = req.files;
+    const {username} = req.user;
     let imageUrls;
     if (files) {
       let images = [
@@ -28,12 +29,13 @@ export const createPost = async (req, res) => {
       ];
       images = images.filter((image) => image !== undefined);
       imageUrls = await Promise.allSettled(
-        images.map((img) => uploadImage(img, "posts"))
+        images.map((img) => uploadImage(img, `${username}/posts`))
       );
       imageUrls = imageUrls.map((image, idx) => {
         return {
           title: req.body[`imageAlt-${idx}`],
-          src: image.value,
+          src: image.value.secure_url,
+          publicId: image.value.public_id
         };
       });
     }
@@ -67,8 +69,11 @@ export const getPost = async (req, res) => {
 export const updatePost = async (req, res) => {
   const postId = req.params.id;
   const userId = req.user.id;
-
+  const files = req.files;
   try {
+    if(files){
+      
+    }
     const post = await PostModel.findById(postId);
     if (post.userId === userId) {
       await post.updateOne({ $set: req.body });
@@ -89,6 +94,9 @@ export const deletePost = async (req, res) => {
   try {
     const post = await PostModel.findById(id);
     if (post.userId === userId) {
+      if(post.images.length>0){
+        await deleteAssetsFromServer(post.images);
+      }
       await post.deleteOne();
       res.status(200).json("Post deleted successfully");
     } else {
@@ -149,7 +157,7 @@ export const createComment = async (req, res) => {
         type: "like",
         payload: {
           userId: userId,
-          postId: id
+          postId: postId
         },
       };
       const postUser = await UserModel.findById(postUserId);
@@ -168,6 +176,7 @@ export const deleteComment = async (req, res) => {
   try{
     const post = await PostModel.findById(postId);
     await post.updateOne({$pull : {comments:{_id:commentId}}});
+    res.status(204).json("Comment deleted")
   }
   catch(err){
     res.status(500).json(err);

@@ -10,7 +10,8 @@ import {
   getTimelinePosts,
   likePost,
   updatePost,
-  createComment
+  createComment,
+  deleteComment
 } from "../Controllers/PostController.js";
 const router = express.Router();
 
@@ -23,4 +24,5 @@ router.put("/:id", authenticateToken, updatePost);
 router.delete("/:id", authenticateToken, deletePost);
 router.put("/:id/like", authenticateToken, likePost);
 router.put("/:id/comment",authenticateToken,createComment);
+router.delete("/:postId/comment/:commentId", authenticateToken, deleteComment)
 export default router;

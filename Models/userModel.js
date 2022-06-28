@@ -24,8 +24,14 @@ const UserSchema = mongoose.Schema(
     lastname: {
       type: String,
     },
-    profilePicture: String,
-    coverPicture: String,
+    profilePicture: {
+      src:String,
+      publicId:String
+    },
+    coverPicture: {
+      src:String,
+      publicId:String
+    },
     about: String,
     website: String,
     location: String,
