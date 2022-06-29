@@ -2,7 +2,7 @@ import { v4 as uuid } from "uuid";
 import PostModel from "../Models/postModel.js";
 import mongoose from "mongoose";
 import UserModel from "../Models/userModel.js";
-import { uploadImage, deleteAssetsFromServer } from "../utils/cloudinaryHelpers.js";
+import { uploadImage, deleteAssetsFromServer, processAndUploadFiles } from "../utils/cloudinaryHelpers.js";
 
 //Get all posts
 export const getAllPosts = async (req, res) => {
@@ -19,33 +19,28 @@ export const createPost = async (req, res) => {
   try {
     const files = req.files;
     const {username} = req.user;
-    let uploadedImages;
-    if (files) {
-      let images = [
-        files["image-0"],
-        files["image-1"],
-        files["image-2"],
-        files["image-3"],
-      ];
-      images = images.filter((image) => image !== undefined);
-      uploadedImages = await Promise.allSettled(
-        images.map((img) => uploadImage(img, `${username}/posts`))
-      );
-      uploadedImages = uploadedImages.map((image, idx) => {
-        return {
-          title: req.body[`imageAlt-${idx}`],
-          src: image.value.secure_url,
-          publicId: image.value.public_id
-        };
+    let uploadedImages=[];
+    if(req.body.content || files){
+      if (files) {
+      uploadedImages = await processAndUploadFiles(files, `${username}/posts`);
+        uploadedImages = uploadedImages.map((image, idx) => {
+          return {
+            title: req.body[`imageAlt-${idx}`],
+            src: image.value.secure_url,
+            publicId: image.value.public_id
+          };
+        });
+      }
+      const newPost = new PostModel({
+        ...req.body,
+        userId: req.user.id,
+        images: uploadedImages,
       });
+      await newPost.save();
+      res.status(200).json(newPost);
+    } else{
+      res.status(204)
     }
-    const newPost = new PostModel({
-      ...req.body,
-      userId: req.user.id,
-      images: uploadedImages,
-    });
-    await newPost.save();
-    res.status(200).json(newPost);
   } catch (error) {
     console.log(error);
     res.status(500).json(error);
@@ -68,21 +63,39 @@ export const getPost = async (req, res) => {
 // Update a post
 export const updatePost = async (req, res) => {
   const postId = req.params.id;
-  const userId = req.user.id;
+  const {id:userId, username} = req.user;
   const files = req.files;
-  const {imagesToDelete, ...updatedPost} = req.body
+  let {imagesToRemove, ...updatedPost} = req.body
   try {
-    if(files){
-      
-    }
     const post = await PostModel.findById(postId);
+    if(files){
+      let uploadedImages = await processAndUploadFiles(files, `${username}/posts`);
+      uploadedImages = uploadedImages.map((image, idx) => {
+        return {
+          title: req.body[`imageAlt-${idx}`],
+          src: image.value.secure_url,
+          publicId: image.value.public_id
+        };
+      });
+      updatedPost.images = [...post.images, ...uploadedImages];
+    }
     if (post.userId === userId) {
-      await post.updateOne({ $set: updatedPost });
-      res.status(200).json("Post Updated");
+      if(imagesToRemove){
+        imagesToRemove = JSON.parse(imagesToRemove);
+        const postImages = post.images;
+        const updatedPostImages = postImages.filter(({publicId})=> !Object.keys(imagesToRemove).includes(publicId))
+        updatedPost.images = updatedPostImages;
+      }
+      await post.updateOne({ $set: updatedPost }, {new:true});
+      res.status(201).json({...post._doc, ...updatedPost});
+      if(imagesToRemove){
+        await deleteAssetsFromServer(imagesToRemove) // so that the api call to delete images from server happens after sending a response to client
+      }
     } else {
       res.status(403).json("Action forbidden");
     }
   } catch (error) {
+    console.log(error)
     res.status(500).json(error);
   }
 };
@@ -95,11 +108,11 @@ export const deletePost = async (req, res) => {
   try {
     const post = await PostModel.findById(id);
     if (post.userId === userId) {
+      await post.deleteOne();
+      res.status(200).json("Post deleted successfully");
       if(post.images.length>0){
         await deleteAssetsFromServer(post.images);
       }
-      await post.deleteOne();
-      res.status(200).json("Post deleted successfully");
     } else {
       res.status(403).json("Action forbidden");
     }

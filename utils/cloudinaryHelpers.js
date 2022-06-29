@@ -7,6 +7,14 @@ export const uploadImage = async (image,folder) => {
   return result;
 };
 
+export const processAndUploadFiles = async (files, uploadFolder) => {
+    let images = Object.values(files)
+    let uploadedImages = await Promise.allSettled(
+      images.map((img) => uploadImage(img, uploadFolder))
+    );
+    return uploadedImages;
+}
+
 export const deleteAssetsFromServer = async (assets) => {
   try{
     const assetPublicIds = assets.map(({publicId}) => publicId);
