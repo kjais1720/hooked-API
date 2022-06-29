@@ -89,7 +89,7 @@ export const updatePost = async (req, res) => {
       await post.updateOne({ $set: updatedPost }, {new:true});
       res.status(201).json({...post._doc, ...updatedPost});
       if(imagesToRemove){
-        await deleteAssetsFromServer(imagesToRemove) // so that the api call to delete images from server happens after sending a response to client
+        await deleteAssetsFromServer(Object.values(imagesToRemove)) // so that the api call to delete images from server happens after sending a response to client
       }
     } else {
       res.status(403).json("Action forbidden");
