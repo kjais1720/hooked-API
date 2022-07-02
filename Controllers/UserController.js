@@ -158,7 +158,7 @@ export const bookmarkPost = async (req, res) => {
     const user = await UserModel.findById(userId)
     if(user.bookmarks.includes(postId)){
       await user.updateOne({$pull : { bookmarks: postId}})
-      res.status(204).json("Post removed from bookmarks")
+      res.status(202).json("Post removed from bookmarks")
     }
     else{
       await user.updateOne({$push : {bookmarks:postId}});
