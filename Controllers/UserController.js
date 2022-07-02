@@ -156,8 +156,14 @@ export const bookmarkPost = async (req, res) => {
   const {id:postId} = req.params;
   try{
     const user = await UserModel.findById(userId)
-    await user.updateOne({$push : {bookmarks:postId}});
-    res.status(201).json("Post saved");
+    if(user.bookmarks.includes(postId)){
+      await user.updateOne({$pull : { bookmarks: postId}})
+      res.status(204).json("Post removed from bookmarks")
+    }
+    else{
+      await user.updateOne({$push : {bookmarks:postId}});
+      res.status(201).json("Post added to bookmarks");
+    }
   }
   catch(err){
     res.status(500).json(err);
