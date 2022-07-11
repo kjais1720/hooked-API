@@ -2,7 +2,11 @@ import { v4 as uuid } from "uuid";
 import PostModel from "../Models/postModel.js";
 import mongoose from "mongoose";
 import UserModel from "../Models/userModel.js";
-import { uploadImage, deleteAssetsFromServer, processAndUploadFiles } from "../utils/cloudinaryHelpers.js";
+import {
+  uploadImage,
+  deleteAssetsFromServer,
+  processAndUploadFiles,
+} from "../utils/cloudinaryHelpers.js";
 
 //Get all posts
 export const getAllPosts = async (req, res) => {
@@ -18,16 +22,19 @@ export const getAllPosts = async (req, res) => {
 export const createPost = async (req, res) => {
   try {
     const files = req.files;
-    const {username} = req.user;
-    let uploadedImages=[];
-    if(req.body.content || files){
+    const { username } = req.user;
+    let uploadedImages = [];
+    if (req.body.content || files) {
       if (files) {
-      uploadedImages = await processAndUploadFiles(files, `${username}/posts`);
+        uploadedImages = await processAndUploadFiles(
+          files,
+          `${username}/posts`
+        );
         uploadedImages = uploadedImages.map((image, idx) => {
           return {
             title: req.body[`imageAlt-${idx}`],
             src: image.value.secure_url,
-            publicId: image.value.public_id
+            publicId: image.value.public_id,
           };
         });
       }
@@ -38,11 +45,10 @@ export const createPost = async (req, res) => {
       });
       await newPost.save();
       res.status(200).json(newPost);
-    } else{
-      res.status(204)
+    } else {
+      res.status(204);
     }
   } catch (error) {
-    console.log(error);
     res.status(500).json(error);
   }
 };
@@ -63,39 +69,44 @@ export const getPost = async (req, res) => {
 // Update a post
 export const updatePost = async (req, res) => {
   const postId = req.params.id;
-  const {id:userId, username} = req.user;
+  const { id: userId, username } = req.user;
   const files = req.files;
-  let {imagesToRemove, ...updatedPost} = req.body
+  let { imagesToRemove, ...updatedPost } = req.body;
   try {
     const post = await PostModel.findById(postId);
-    if(files){
-      let uploadedImages = await processAndUploadFiles(files, `${username}/posts`);
+    let uploadedImages;
+    if (files) {
+      uploadedImages = await processAndUploadFiles(
+        files,
+        `${username}/posts`
+      );
       uploadedImages = uploadedImages.map((image, idx) => {
         return {
           title: req.body[`imageAlt-${idx}`],
           src: image.value.secure_url,
-          publicId: image.value.public_id
+          publicId: image.value.public_id,
         };
       });
       updatedPost.images = [...post.images, ...uploadedImages];
     }
     if (post.userId === userId) {
-      if(imagesToRemove){
+      if (imagesToRemove) {
         imagesToRemove = JSON.parse(imagesToRemove);
         const postImages = post.images;
-        const updatedPostImages = postImages.filter(({publicId})=> !Object.keys(imagesToRemove).includes(publicId))
-        updatedPost.images = updatedPostImages;
+        const updatedPostImages = postImages.filter(
+          ({ publicId }) => !Object.keys(imagesToRemove).includes(publicId)
+        );
+        updatedPost.images = [...updatedPostImages, ...uploadedImages];
       }
-      await post.updateOne({ $set: updatedPost }, {new:true});
-      res.status(201).json({...post._doc, ...updatedPost});
-      if(imagesToRemove){
-        await deleteAssetsFromServer(Object.values(imagesToRemove)) // so that the api call to delete images from server happens after sending a response to client
+      await post.updateOne({ $set: updatedPost }, { new: true });
+      res.status(201).json({ ...post._doc, ...updatedPost });
+      if (imagesToRemove) {
+        await deleteAssetsFromServer(Object.values(imagesToRemove)); // so that the api call to delete images from server happens after sending a response to client
       }
     } else {
       res.status(403).json("Action forbidden");
     }
   } catch (error) {
-    console.log(error)
     res.status(500).json(error);
   }
 };
@@ -110,7 +121,7 @@ export const deletePost = async (req, res) => {
     if (post.userId === userId) {
       await post.deleteOne();
       res.status(200).json("Post deleted successfully");
-      if(post.images.length>0){
+      if (post.images.length > 0) {
         await deleteAssetsFromServer(post.images);
       }
     } else {
@@ -129,19 +140,18 @@ export const likePost = async (req, res) => {
   try {
     const post = await PostModel.findById(id);
     if (!post.likes.includes(userId)) {
-      
       const postUserId = post.userId;
       const postUser = await UserModel.findById(postUserId);
-      if(postUserId !== userId){
+      if (postUserId !== userId) {
         const notification = {
-          _id:uuid(),
+          _id: uuid(),
           type: "like",
           payload: {
             userId: userId,
-            postId: id
+            postId: id,
           },
         };
-        await postUser.updateOne({$push:{notifications: notification}})
+        await postUser.updateOne({ $push: { notifications: notification } });
       }
       await post.updateOne({ $push: { likes: userId } });
       res.status(200).json("Post liked");
@@ -165,17 +175,17 @@ export const createComment = async (req, res) => {
   try {
     const post = await PostModel.findById(postId);
     const postUserId = post.userId;
-    if(postUserId !== userId){
+    if (postUserId !== userId) {
       const notification = {
-        _id:uuid(),
+        _id: uuid(),
         type: "like",
         payload: {
           userId: userId,
-          postId: postId
+          postId: postId,
         },
       };
       const postUser = await UserModel.findById(postUserId);
-      await postUser.updateOne({$push:{notifications: notification}})
+      await postUser.updateOne({ $push: { notifications: notification } });
     }
     await post.updateOne({ $push: { comments: newComment } });
     res.status(201).json(newComment);
@@ -184,18 +194,35 @@ export const createComment = async (req, res) => {
   }
 };
 
-//Delete a comment 
-export const deleteComment = async (req, res) => {
-  const {commentId, postId} = req.params;
-  try{
+//Edit a comment
+export const updateComment = async (req, res) => {
+  const { commentId, postId } = req.params;
+  const { content } = req.body;
+  try {
     const post = await PostModel.findById(postId);
-    await post.updateOne({$pull : {comments:{_id:commentId}}});
-    res.status(204).json("Comment deleted")
-  }
-  catch(err){
+    const updatedCommentsList = post.comments.map((comment) =>
+      comment._id === commentId
+        ? { ...comment, content }
+        : comment
+    );
+    await post.updateOne({$set:{comments:updatedCommentsList}})
+    res.status(200).json(updatedCommentsList)
+  } catch (err) {
     res.status(500).json(err);
   }
-}
+};
+
+//Delete a comment
+export const deleteComment = async (req, res) => {
+  const { commentId, postId } = req.params;
+  try {
+    const post = await PostModel.findById(postId);
+    await post.updateOne({ $pull: { comments: { _id: commentId } } });
+    res.status(204).json("Comment deleted");
+  } catch (err) {
+    res.status(500).json(err);
+  }
+};
 
 // Get Timeline Posts
 export const getTimelinePosts = async (req, res) => {

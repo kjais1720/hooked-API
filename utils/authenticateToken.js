@@ -20,7 +20,7 @@ const authenticateToken = (req, res, next) => {
       next();
     }
     catch(err){
-      console.log(err)
+      return res.sendStatus(500)
     }
   })
 }
