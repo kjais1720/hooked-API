@@ -96,7 +96,7 @@ export const updatePost = async (req, res) => {
         const updatedPostImages = postImages.filter(
           ({ publicId }) => !Object.keys(imagesToRemove).includes(publicId)
         );
-        updatedPost.images = [...updatedPostImages, ...uploadedImages];
+        updatedPost.images = uploadedImages ? [...updatedPostImages, ...uploadedImages] : [...updatedPostImages];
       }
       await post.updateOne({ $set: updatedPost }, { new: true });
       res.status(201).json({ ...post._doc, ...updatedPost });
@@ -107,6 +107,7 @@ export const updatePost = async (req, res) => {
       res.status(403).json("Action forbidden");
     }
   } catch (error) {
+    console.log(error)
     res.status(500).json(error);
   }
 };
