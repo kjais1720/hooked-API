@@ -15,6 +15,8 @@ export const registerUser = async (req, res) => {
     firstname,
     lastname,
     email,
+    coverPicture:{},
+    profilePicture:{},
     about:"",
     location:"",
     website:"",
