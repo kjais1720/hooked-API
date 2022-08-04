@@ -130,15 +130,14 @@ export const followUser = async (req, res) => {
 export const UnFollowUser = async (req, res) => {
   const id = req.params.id;
 
-  const { id: currentUserId } = req.user;
-  if (currentUserId === id) {
+  const followingUser = req.user;
+  if (followingUser.id === id) {
     res.status(403).json("Action forbidden");
   } else {
     try {
       const followUser = await UserModel.findById(id);
-      const followingUser = await UserModel.findById(currentUserId);
-      if (followUser.followers.includes(currentUserId)) {
-        await followUser.updateOne({ $pull: { followers: currentUserId } });
+      if (followUser.followers.includes(followingUser.id)) {
+        await followUser.updateOne({ $pull: { followers: followingUser.id } });
         await followingUser.updateOne({ $pull: { following: id } });
         res.status(200).json("User Unfollowed!");
       } else {
