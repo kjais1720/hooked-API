@@ -3,10 +3,24 @@ import PostModel from "../Models/postModel.js";
 import mongoose from "mongoose";
 import UserModel from "../Models/userModel.js";
 import {
-  uploadImage,
   deleteAssetsFromServer,
   processAndUploadFiles,
 } from "../utils/cloudinaryHelpers.js";
+
+const updateProfile = async (userId, postId) => {
+  console.log({userId, postId});
+  return await UserModel.findByIdAndUpdate(userId, {$push:{likes:postId}})
+}
+
+const test = async () => {
+  const posts = await PostModel.find();
+  posts.forEach(post => {
+    const postId = post.id
+    const likedUserIds = post.likes;
+    const res = Promise.all(likedUserIds.map(userId=>updateProfile(userId, postId)))
+  })
+
+}
 
 //Get all posts
 export const getAllPosts = async (req, res) => {
@@ -136,7 +150,8 @@ export const deletePost = async (req, res) => {
 // like/dislike a post
 export const likePost = async (req, res) => {
   const id = req.params.id;
-  const userId = req.user.id;
+  const currentUser = req.user;
+  const userId = currentUser.id;
 
   try {
     const post = await PostModel.findById(id);
@@ -152,12 +167,14 @@ export const likePost = async (req, res) => {
             postId: id,
           },
         };
-        await postUser.updateOne({ $push: { notifications: notification } });
+        await postUser.updateOne({ $push: { notifications: notification} });
       }
       await post.updateOne({ $push: { likes: userId } });
+      await currentUser.updateOne({$push: { likes: id}})
       res.status(200).json("Post liked");
     } else {
       await post.updateOne({ $pull: { likes: userId } });
+      await currentUser.updateOne({$pull: { likes: id}})
       res.status(200).json("Post unliked");
     }
   } catch (error) {

@@ -20,6 +20,8 @@ export const registerUser = async (req, res) => {
     about:"",
     location:"",
     website:"",
+    likes:[],
+    posts:[],
     followers:[],
     following:[],
     bookmarks:[],
